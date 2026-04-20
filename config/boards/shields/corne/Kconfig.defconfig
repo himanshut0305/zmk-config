@@ -41,10 +41,3 @@ endchoice
 endif # LVGL
 
 endif
-
-config CORNE_CUSTOM_DISPLAY
-	bool "Custom Corne portrait display"
-	depends on ZMK_DISPLAY
-	select LV_USE_CANVAS
-	select LV_FONT_MONTSERRAT_14
-	select LV_FONT_MONTSERRAT_16
