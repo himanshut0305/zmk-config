@@ -1,0 +1,85 @@
+/*
+ * Corne 3x6 Keymap — Himanshu
+ * Based on old 3x5 simple layout, expanded to 3x6 with extra side keys.
+ * No home row mods. No tap-hold on thumbs. Simple and predictable.
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/rgb.h>
+#include <dt-bindings/zmk/ext_power.h>
+
+/ {
+    combos {
+        compatible = "zmk,combos";
+        combo_bt {
+            require-prior-idle-ms = <1000>;
+            timeout-ms = <50>;
+            key-positions = <37 40>;
+            bindings = <&mo 3>;
+        };
+    };
+};
+
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+// -------------------------------------------------------------------------
+// | TAB |  Q  |  W  |  E  |  R  |  T  |   |  Y  |  U  |  I  |  O  |  P  | BSPC |
+// | ESC |  A  |  S  |  D  |  F  |  G  |   |  H  |  J  |  K  |  L  |  ;  |  '   |
+// | SHFT|  Z  |  X  |  C  |  V  |  B  |   |  N  |  M  |  ,  |  .  |  /  | CTRL |
+//                   | GUI | LWR | SPC |   | ENT | RSE | BSPC|
+            bindings = <
+   &kp TAB   &kp Q &kp W &kp E    &kp R &kp T       &kp Y   &kp U  &kp I     &kp O   &kp P    &kp BSPC
+   &kp ESC   &kp A &kp S &kp D    &kp F &kp G       &kp H   &kp J  &kp K     &kp L   &kp SEMI &kp SQT
+   &kp LSHFT &kp Z &kp X &kp C    &kp V &kp B       &kp N   &kp M  &kp COMMA &kp DOT &kp FSLH &kp LCTRL
+                         &kp LGUI &mo 1 &kp SPACE   &kp RET &mo 2  &kp BSPC
+            >;
+        };
+
+        lower_layer {
+// -------------------------------------------------------------------------
+// |  `  |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  | DEL  |
+// | TAB | CTRL| SHFT| ESC | CAPS|     |   | LFT | DWN |  UP | RGT |  :  |      |
+// | SHFT|     |     |     |     |     |   | HOME| PGDN| PGUP| END |  ?  |      |
+//                   |     |     |     |   | ENT |     | ALT |
+            bindings = <
+   &kp GRAVE &kp N1    &kp N2    &kp N3  &kp N4   &kp N5    &kp N6   &kp N7    &kp N8    &kp N9    &kp N0    &kp DEL
+   &kp TAB   &kp LCTRL &kp LSHFT &kp ESC &kp CLCK &trans    &kp LEFT &kp DOWN  &kp UP    &kp RIGHT &kp COLON &trans
+   &kp LSHFT &trans    &trans    &trans  &trans   &trans    &kp HOME &kp PG_DN &kp PG_UP &kp END   &kp QMARK &trans
+                                 &trans  &trans   &trans    &kp RET  &trans    &kp RALT
+            >;
+        };
+
+        raise_layer {
+// -------------------------------------------------------------------------
+// |  ~  |  !  |  @  |  #  |  $  |  %  |   |  ^  |  &  |  *  |  (  |  )  | DEL  |
+// |     |  `  |  <  |  >  |  ~  |     |   |  -  |  +  |  \  |  [  |  ]  |      |
+// | SHFT|  '  |  "  |     |     |     |   |  _  |  =  |  |  |  {  |  }  |      |
+//                   | GUI |     | SPC |   | ENT |     | ALT |
+            bindings = <
+   &kp TILDE &kp EXCL  &kp AT  &kp HASH &kp DLLR  &kp PRCNT   &kp CARET &kp AMPS  &kp ASTRK &kp LPAR &kp RPAR &kp DEL
+   &trans    &kp GRAVE &kp LT  &kp GT   &kp TILDE &trans      &kp MINUS &kp PLUS  &kp BSLH  &kp LBKT &kp RBKT &trans
+   &kp LSHFT &kp SQT   &kp DQT &trans   &trans    &trans      &kp UNDER &kp EQUAL &kp PIPE  &kp LBRC &kp RBRC &trans
+                                &kp LGUI &trans    &kp SPACE   &kp RET   &trans    &kp RALT
+            >;
+        };
+
+        command_layer {
+// -------------------------------------------------------------------------
+// |     | BT1 | BT2 | BT3 | BT4 | BT5 |   | CLR | CLRA|     |     |     |      |
+// |     | DC1 | DC2 | DC3 | DC4 | DC5 |   |     |     |     |     |     |      |
+// |     |     |     |     |     |     |   |     |     |     |     |     |      |
+//                   |     |     |     |   |     |     |     |
+            bindings = <
+   &trans &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_SEL 4  &bt BT_CLR &bt BT_CLR_ALL &trans &trans &trans &trans
+   &trans &bt BT_DISC 0 &bt BT_DISC 1 &bt BT_DISC 2 &bt BT_DISC 3 &bt BT_DISC 4 &trans     &trans         &trans &trans &trans &trans
+   &trans &trans        &trans        &trans        &trans        &trans        &trans     &trans         &trans &trans &trans &trans
+                                      &trans        &trans        &trans        &trans     &trans         &trans
+            >;
+        };
+    };
+};
