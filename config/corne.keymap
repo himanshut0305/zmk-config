@@ -42,15 +42,15 @@
 
         lower_layer {
 // -------------------------------------------------------------------------
-// |  `  |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  | DEL  |
-// | TAB | CTRL| SHFT| ESC | CAPS|     |   | LFT | DWN |  UP | RGT |  :  |      |
-// | SHFT|     |     |     |     |     |   | HOME| PGDN| PGUP| END |  ?  |      |
+// |     |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  |      |
+// |     | TAB | CTRL| SHFT| ESC | CAPS|   | GUI | SPC | SHFT| CTRL|  :  |      |
+// |     |     |     |     |     |     |   | LFT | DWN |  UP | RGT |  ?  |      |
 //                   |     |     |     |   | ENT |     | ALT |
             bindings = <
-   &kp GRAVE &kp N1    &kp N2    &kp N3  &kp N4   &kp N5    &kp N6   &kp N7    &kp N8    &kp N9    &kp N0    &kp DEL
-   &kp TAB   &kp LCTRL &kp LSHFT &kp ESC &kp CLCK &trans    &kp LEFT &kp DOWN  &kp UP    &kp RIGHT &kp COLON &trans
-   &kp LSHFT &trans    &trans    &trans  &trans   &trans    &kp HOME &kp PG_DN &kp PG_UP &kp END   &kp QMARK &trans
-                                 &trans  &trans   &trans    &kp RET  &trans    &kp RALT
+   &trans &kp N1    &kp N2    &kp N3    &kp N4   &kp N5    &kp N6   &kp N7    &kp N8    &kp N9    &kp N0    &trans
+   &trans &kp TAB   &kp LCTRL &kp LSHFT &kp ESC  &kp CLCK  &kp RGUI &kp SPACE &kp RSHFT &kp RCTRL &kp COLON &trans
+   &trans &trans    &trans    &trans    &trans   &trans    &kp LEFT &kp DOWN  &kp UP    &kp RIGHT &kp QMARK &trans
+                              &trans    &trans   &trans    &kp RET  &trans    &kp RALT
             >;
         };
 
