@@ -29,7 +29,7 @@ lv_obj_t *zmk_display_status_screen(void) {
     /* Keyboard icon + text — bottom center to avoid overlapping top widgets */
     lv_obj_t *label = lv_label_create(screen);
     lv_label_set_text(label, LV_SYMBOL_KEYBOARD " CORNE");
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_16, 0);
     lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -2);
 
     /* Built-in peripheral status — top left */
