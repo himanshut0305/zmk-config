@@ -26,11 +26,11 @@ static struct zmk_widget_peripheral_status peripheral_widget;
 lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_t *screen = lv_obj_create(NULL);
 
-    /* Center label with keyboard symbol — small to avoid overlap with widgets */
+    /* Keyboard icon + text — bottom center to avoid overlapping top widgets */
     lv_obj_t *label = lv_label_create(screen);
-    lv_label_set_text(label, LV_SYMBOL_KEYBOARD);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_16, 0);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 4);
+    lv_label_set_text(label, LV_SYMBOL_KEYBOARD " CORNE");
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+    lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -2);
 
     /* Built-in peripheral status — top left */
     zmk_widget_peripheral_status_init(&peripheral_widget, screen);
