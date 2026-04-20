@@ -41,7 +41,3 @@ endchoice
 endif # LVGL
 
 endif
-
-config CORNE_CUSTOM_DISPLAY
-	bool "Custom Corne display"
-	depends on ZMK_DISPLAY
