@@ -1,0 +1,30 @@
+/*
+ * Portrait SSD1306 128x32 display utilities
+ * Colors swapped for inversion-on: white fill = dark on screen, black draw = bright
+ */
+#pragma once
+
+#include <lvgl.h>
+
+#define CANVAS_SIZE 32
+#define CANVAS_COLOR_FORMAT LV_COLOR_FORMAT_L8
+#define CANVAS_BUF_SIZE                                                                            \
+    LV_CANVAS_BUF_SIZE(CANVAS_SIZE, CANVAS_SIZE, LV_COLOR_FORMAT_GET_BPP(CANVAS_COLOR_FORMAT),     \
+                       LV_DRAW_BUF_STRIDE_ALIGN)
+
+/* SSD1306 has inversion-on: L8 0xFF → dark on screen, L8 0x00 → bright */
+#define BG_COLOR lv_color_white()
+#define FG_COLOR lv_color_black()
+
+void rotate_canvas(lv_obj_t *canvas);
+
+void init_label_dsc(lv_draw_label_dsc_t *dsc, lv_color_t color, const lv_font_t *font,
+                    lv_text_align_t align);
+void init_rect_dsc(lv_draw_rect_dsc_t *dsc, lv_color_t color);
+
+void canvas_draw_rect(lv_obj_t *canvas, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h,
+                      lv_draw_rect_dsc_t *dsc);
+void canvas_draw_text(lv_obj_t *canvas, lv_coord_t x, lv_coord_t y, lv_coord_t max_w,
+                      lv_draw_label_dsc_t *dsc, const char *txt);
+
+void draw_battery_bar(lv_obj_t *canvas, uint8_t level);
