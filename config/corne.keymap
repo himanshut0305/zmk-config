@@ -19,6 +19,12 @@
             key-positions = <37 40>;
             bindings = <&mo 3>;
         };
+        combo_bt_left {
+            require-prior-idle-ms = <1000>;
+            timeout-ms = <50>;
+            key-positions = <36 37>;
+            bindings = <&mo 3>;
+        };
     };
 };
 
