@@ -27,10 +27,11 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "portrait_util.h"
 
-static lv_obj_t *top_canvas, *mid_canvas, *bot_canvas;
+static lv_obj_t *top_canvas, *mid_canvas, *bot_canvas, *bottom_canvas;
 static uint8_t cbuf_top[CANVAS_BUF_SIZE];
 static uint8_t cbuf_mid[CANVAS_BUF_SIZE];
 static uint8_t cbuf_bot[CANVAS_BUF_SIZE];
+static uint8_t cbuf_bottom[CANVAS_BUF_SIZE];
 
 static struct {
     uint8_t battery;
@@ -204,6 +205,11 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_canvas_set_buffer(bot_canvas, cbuf_bot, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
     lv_obj_set_pos(bot_canvas, 32, 0);
 
+    /* 4th canvas at bottom — "CORNE" label */
+    bottom_canvas = lv_canvas_create(screen);
+    lv_canvas_set_buffer(bottom_canvas, cbuf_bottom, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
+    lv_obj_set_pos(bottom_canvas, 0, 0);
+
     /* Initial draw */
     state.battery = zmk_battery_state_of_charge();
     state.profile_index = zmk_ble_active_profile_index();
@@ -215,6 +221,13 @@ lv_obj_t *zmk_display_status_screen(void) {
     draw_top();
     draw_mid();
     draw_bot();
+
+    /* Draw CORNE label on bottom canvas */
+    lv_canvas_fill_bg(bottom_canvas, BG_COLOR, LV_OPA_COVER);
+    lv_draw_label_dsc_t corne_lbl;
+    init_label_dsc(&corne_lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
+    canvas_draw_text(bottom_canvas, 0, 8, 32, &corne_lbl, "CORNE");
+    rotate_canvas(bottom_canvas);
 
     p_central_bat_init();
     p_central_out_init();
