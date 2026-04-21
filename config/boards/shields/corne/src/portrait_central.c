@@ -189,6 +189,10 @@ ZMK_SUBSCRIPTION(p_central_layer, zmk_layer_state_changed);
 lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_t *screen = lv_obj_create(NULL);
 
+    /* Fill entire screen dark (white = dark on inverted SSD1306) */
+    lv_obj_set_style_bg_color(screen, BG_COLOR, 0);
+    lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
+
     /* Canvas positions: rightmost = top in portrait after 270° rotation */
     top_canvas = lv_canvas_create(screen);
     lv_canvas_set_buffer(top_canvas, cbuf_top, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
