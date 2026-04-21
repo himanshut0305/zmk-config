@@ -73,8 +73,9 @@ static void draw_mid(void) {
     lv_draw_label_dsc_t lbl;
     init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
 
-    char txt[4];
-    snprintf(txt, sizeof(txt), "BT%d", state.profile_index + 1);
+    /* BT icon + profile number */
+    char txt[8];
+    snprintf(txt, sizeof(txt), LV_SYMBOL_BLUETOOTH "%d", state.profile_index + 1);
     canvas_draw_text(mid_canvas, 0, 8, 32, &lbl, txt);
 
     rotate_canvas(mid_canvas);
@@ -86,13 +87,10 @@ static void draw_bot(void) {
     lv_draw_label_dsc_t lbl;
     init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
 
-    if (state.layer_label && strlen(state.layer_label) > 0) {
-        canvas_draw_text(bot_canvas, 0, 8, 32, &lbl, state.layer_label);
-    } else {
-        char txt[6];
-        snprintf(txt, sizeof(txt), "L %d", state.layer_index);
-        canvas_draw_text(bot_canvas, 0, 8, 32, &lbl, txt);
-    }
+    /* Keyboard icon + layer number */
+    char txt[8];
+    snprintf(txt, sizeof(txt), LV_SYMBOL_KEYBOARD "%d", state.layer_index);
+    canvas_draw_text(bot_canvas, 0, 8, 32, &lbl, txt);
 
     rotate_canvas(bot_canvas);
 }
