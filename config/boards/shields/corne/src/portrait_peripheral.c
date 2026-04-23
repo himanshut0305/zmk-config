@@ -2,10 +2,22 @@
  * Portrait peripheral (right) display for SSD1306 128x32
  *
  * 4 rotated 32x32 canvases (top to bottom in portrait):
- *   0: Battery bar + connection icon
- *   1: Diamond (28px tall, fills canvas)
- *   2: (dark)
- *   3: "Corne" label
+ *   0: Battery bar + connection icon        (portrait y=0..31)
+ *   1: Equalizer bars upper portion         (portrait y=32..63)
+ *   2: Equalizer bars lower portion / base  (portrait y=64..95)
+ *   3: "Corne" label                        (portrait y=96..127)
+ *
+ * Coordinate mapping (after LV_DISPLAY_ROTATION_270):
+ *   portrait_x = canvas_x
+ *   portrait_y = canvas_y + (96 - phys_x)
+ *     c0 phys_x=96: portrait_y = canvas_y       (0..31)
+ *     c1 phys_x=64: portrait_y = canvas_y + 32  (32..63)
+ *     c2 phys_x=32: portrait_y = canvas_y + 64  (64..95)
+ *     c3 phys_x=0:  portrait_y = canvas_y + 96  (96..127)
+ *
+ * Equalizer bars:
+ *   7 bars, width=3px, gap=1px, base at portrait_y=95
+ *   Heights 6..54px, growing upward (into c1 for tall bars)
  */
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -33,67 +45,105 @@ static struct {
     bool connected;
 } state;
 
-/* ── Diamond + glitch ── */
+/* ── Equalizer bars ── */
 
-static uint16_t glitch_seed = 77;
-static uint8_t glitch_frames_left = 0;
-static int64_t last_glitch_time;
-static uint32_t glitch_next_ms;
-static bool diamond_dirty = true;
+#define NUM_BARS       7
+#define BAR_W          3
+#define BAR_GAP        1
+#define BAR_BASE_PY    95   /* portrait_y of bar base (bottom of c2) */
+#define BAR_MIN_H      6
+#define BAR_MAX_H      54   /* 54px reaches portrait_y=41, well into c1 */
 
-static uint16_t glitch_rand(void) {
-    glitch_seed ^= glitch_seed << 7;
-    glitch_seed ^= glitch_seed >> 9;
-    glitch_seed ^= glitch_seed << 8;
-    return glitch_seed;
+/*
+ * Bar portrait_x start positions (= canvas_x).
+ * Total bar span = 7*3 + 6*1 = 27px. Start offset = (32-27)/2 = 2.
+ */
+static const uint8_t bar_start_x[NUM_BARS] = {2, 6, 10, 14, 18, 22, 26};
+
+static uint8_t bar_h[NUM_BARS]      = {14, 28, 20, 40, 32, 18, 24};
+static uint8_t bar_target[NUM_BARS] = {14, 28, 20, 40, 32, 18, 24};
+
+static uint16_t eq_seed = 0xAB12;
+
+static uint16_t eq_rand(void) {
+    eq_seed ^= eq_seed << 7;
+    eq_seed ^= eq_seed >> 9;
+    eq_seed ^= eq_seed << 8;
+    return eq_seed;
 }
 
-static void draw_diamond(bool with_glitch) {
-    lv_canvas_fill_bg(c1, BG_COLOR, LV_OPA_COVER);
+/*
+ * Draw the portion of the equalizer bars that falls within one canvas section.
+ * py_base: portrait_y where canvas_y=0 maps to (32 for c1, 64 for c2).
+ */
+static void draw_eq_section(lv_obj_t *canvas, int py_base) {
+    int py_top = py_base;
+    int py_bot = py_base + CANVAS_SIZE - 1;
 
-    lv_draw_rect_dsc_t fg_dsc;
-    init_rect_dsc(&fg_dsc, FG_COLOR);
+    lv_canvas_fill_bg(canvas, BG_COLOR, LV_OPA_COVER);
+    lv_draw_rect_dsc_t fg;
+    init_rect_dsc(&fg, FG_COLOR);
 
-    /* Diamond: 28 rows (y=2 to y=29), max width 28px, centered in 32px */
-    for (int i = 0; i < 28; i++) {
-        int half = (i < 14) ? (i + 1) : (28 - i);
-        int w = half * 2;
-        int x = (32 - w) / 2;
-        int y = i + 2;
+    for (int i = 0; i < NUM_BARS; i++) {
+        int h = bar_h[i];
+        /* bar occupies portrait_y = (BAR_BASE_PY - h + 1) .. BAR_BASE_PY */
+        int bar_py_top = BAR_BASE_PY - h + 1;
+        int bar_py_bot = BAR_BASE_PY;
 
-        if (with_glitch && glitch_frames_left > 0 && (glitch_rand() % 3 == 0)) {
-            x += (glitch_rand() % 5) - 2;
-            w += (glitch_rand() % 3) - 1;
-            if (w < 1) w = 1;
+        /* clip to this section */
+        int seg_top = bar_py_top > py_top ? bar_py_top : py_top;
+        int seg_bot = bar_py_bot < py_bot ? bar_py_bot : py_bot;
+
+        if (seg_top > seg_bot) {
+            continue;
         }
 
-        if (w > 0 && x >= 0 && x + w <= 32) {
-            canvas_draw_rect(c1, x, y, w, 1, &fg_dsc);
-        }
+        int cy_start = seg_top - py_base;   /* canvas_y start */
+        int cy_len   = seg_bot - seg_top + 1;
+        int cx       = bar_start_x[i];      /* canvas_x = portrait_x */
+
+        canvas_draw_rect(canvas, cx, cy_start, BAR_W, cy_len, &fg);
     }
 
-    if (with_glitch && glitch_frames_left > 0) {
-        glitch_frames_left--;
-    }
-
-    rotate_canvas(c1);
+    rotate_canvas(canvas);
 }
 
-static void glitch_timer_cb(lv_timer_t *timer) {
-    int64_t now = k_uptime_get();
-    if (glitch_frames_left == 0) {
-        if ((now - last_glitch_time) > (int64_t)glitch_next_ms) {
-            last_glitch_time = now;
-            glitch_frames_left = 2 + (glitch_rand() % 4);
-            glitch_next_ms = 2000 + (glitch_rand() % 6000);
-        } else if (diamond_dirty) {
-            draw_diamond(false);
-            diamond_dirty = false;
+static void redraw_bars(void) {
+    draw_eq_section(c1, 32);
+    draw_eq_section(c2, 64);
+}
+
+static void eq_timer_cb(lv_timer_t *timer) {
+    ARG_UNUSED(timer);
+
+    /* Retarget bars periodically */
+    static uint8_t retarget_count = 0;
+
+    if (retarget_count == 0) {
+        retarget_count = 5 + (eq_rand() % 10);
+        for (int i = 0; i < NUM_BARS; i++) {
+            bar_target[i] = BAR_MIN_H + (uint8_t)(eq_rand() % (BAR_MAX_H - BAR_MIN_H + 1));
         }
-        return;
     }
-    draw_diamond(true);
-    diamond_dirty = true;
+    retarget_count--;
+
+    /* Animate heights toward targets (2px/tick) */
+    bool changed = false;
+    for (int i = 0; i < NUM_BARS; i++) {
+        if (bar_h[i] < bar_target[i]) {
+            int step = bar_target[i] - bar_h[i];
+            bar_h[i] += (step > 2) ? 2 : step;
+            changed = true;
+        } else if (bar_h[i] > bar_target[i]) {
+            int step = bar_h[i] - bar_target[i];
+            bar_h[i] -= (step > 2) ? 2 : step;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        redraw_bars();
+    }
 }
 
 /* ── Canvas 0: Battery + connection ── */
@@ -162,6 +212,7 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_set_style_bg_color(screen, BG_COLOR, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
+    /* Physical x positions: c0=96 (portrait top), c3=0 (portrait bottom) */
     c0 = lv_canvas_create(screen);
     lv_canvas_set_buffer(c0, buf0, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
     lv_obj_set_pos(c0, 96, 0);
@@ -178,22 +229,15 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_canvas_set_buffer(c3, buf3, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
     lv_obj_set_pos(c3, 0, 0);
 
-    state.battery = zmk_battery_state_of_charge();
+    state.battery  = zmk_battery_state_of_charge();
     state.connected = zmk_split_bt_peripheral_is_connected();
 
     draw_c0();
-    draw_diamond(false);
-    diamond_dirty = false;
-
-    /* Canvas 2: dark */
-    lv_canvas_fill_bg(c2, BG_COLOR, LV_OPA_COVER);
-    rotate_canvas(c2);
-
+    redraw_bars();
     draw_c3();
 
-    last_glitch_time = k_uptime_get();
-    glitch_next_ms = 3000;
-    lv_timer_create(glitch_timer_cb, 150, NULL);
+    /* ~100ms timer → smooth bar animation at ~10fps */
+    lv_timer_create(eq_timer_cb, 100, NULL);
 
     p_periph_bat_init();
     p_periph_conn_init();
