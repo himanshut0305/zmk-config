@@ -2,14 +2,14 @@
  * Portrait central (left) display for SSD1306 128x32
  *
  * 4 rotated 32x32 canvases (top to bottom in portrait):
- *   0: Battery bar + connection icon
- *   1: BT profile + layer info
- *   2: (empty/dark — reserved)
- *   3: "Corne" label
+ *   0: Battery bar + transport icon       (portrait y=0..31)
+ *   1: BT profile indicator               (portrait y=32..63)
+ *   2: Layer icon + layer number          (portrait y=64..95)
+ *   3: "Corne" label                      (portrait y=96..127)
  *
- * Font sizes calculated for 32px width:
- *   montserrat_16: ~11px/char, 19px tall — for layer number
- *   montserrat_10: ~6px/char, 11px tall — for labels/symbols
+ * Coordinate mapping (after LV_DISPLAY_ROTATION_270):
+ *   portrait_x = canvas_x  (0..31)
+ *   portrait_y = canvas_y + (96 - phys_x)
  */
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -43,20 +43,18 @@ static struct {
     bool profile_connected;
     bool profile_bonded;
     uint8_t layer_index;
-    const char *layer_label;
 } state;
 
-/* ── Canvas 0: Battery + connection icon ── */
+/* ── Canvas 0: Battery bar + transport icon ── */
 
 static void draw_c0(void) {
     lv_canvas_fill_bg(c0, BG_COLOR, LV_OPA_COVER);
 
-    /* Battery bar: y=4, 8px tall, 24px wide + nub */
     draw_battery_bar(c0, state.battery);
 
-    /* Connection icon: y=16, montserrat_10 */
+    /* Transport icon in montserrat_16 for size — centered below battery */
     lv_draw_label_dsc_t lbl;
-    init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_10, LV_TEXT_ALIGN_CENTER);
+    init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
 
     const char *icon;
     switch (zmk_endpoint_get_selected().transport) {
@@ -68,33 +66,66 @@ static void draw_c0(void) {
         icon = state.profile_connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE;
         break;
     }
-    canvas_draw_text(c0, 0, 18, 32, &lbl, icon);
+    canvas_draw_text(c0, 0, 15, 32, &lbl, icon);
 
     rotate_canvas(c0);
 }
 
-/* ── Canvas 1: BT profile + layer ── */
+/* ── Canvas 1: BT profile ── */
 
 static void draw_c1(void) {
     lv_canvas_fill_bg(c1, BG_COLOR, LV_OPA_COVER);
 
-    /* BT profile: montserrat_10, ~16px wide → centered in 32px */
-    lv_draw_label_dsc_t sm;
-    init_label_dsc(&sm, FG_COLOR, &lv_font_montserrat_10, LV_TEXT_ALIGN_CENTER);
+    lv_draw_label_dsc_t lbl;
+    init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
 
+    /*
+     * BT symbol + profile number side-by-side, montserrat_16.
+     * Vertically centered in 32px canvas (baseline at ~canvas_y=22 for
+     * 16px-tall glyphs; start the text box at canvas_y=6).
+     */
     char bt_txt[8];
-    snprintf(bt_txt, sizeof(bt_txt), LV_SYMBOL_BLUETOOTH "%d", state.profile_index + 1);
-    canvas_draw_text(c1, 0, 2, 32, &sm, bt_txt);
-
-    /* Layer number: montserrat_16 for big readable number */
-    lv_draw_label_dsc_t lg;
-    init_label_dsc(&lg, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
-
-    char layer_txt[4];
-    snprintf(layer_txt, sizeof(layer_txt), "%d", state.layer_index);
-    canvas_draw_text(c1, 0, 14, 32, &lg, layer_txt);
+    snprintf(bt_txt, sizeof(bt_txt), LV_SYMBOL_BLUETOOTH " %d",
+             state.profile_index + 1);
+    canvas_draw_text(c1, 0, 6, 32, &lbl, bt_txt);
 
     rotate_canvas(c1);
+}
+
+/* ── Canvas 2: Layer icon + layer number ── */
+
+/*
+ * One icon per layer — visible at-a-glance on the OLED.
+ *   0 default  → HOME   (⌂)
+ *   1 lower    → DOWN   (↓)
+ *   2 raise    → UP     (↑)
+ *   3 command  → SETTINGS (⚙)
+ */
+static const char *layer_icon(uint8_t idx) {
+    switch (idx) {
+    case 0:  return LV_SYMBOL_HOME;
+    case 1:  return LV_SYMBOL_DOWN;
+    case 2:  return LV_SYMBOL_UP;
+    case 3:  return LV_SYMBOL_SETTINGS;
+    default: return LV_SYMBOL_LIST;
+    }
+}
+
+static void draw_c2(void) {
+    lv_canvas_fill_bg(c2, BG_COLOR, LV_OPA_COVER);
+
+    lv_draw_label_dsc_t lbl;
+    init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
+
+    /* Layer icon: top half of canvas (canvas_y=1..16) */
+    canvas_draw_text(c2, 0, 1, 32, &lbl, layer_icon(state.layer_index));
+
+    /* Layer number: bottom half (canvas_y=17..32) */
+    char num[4];
+    snprintf(num, sizeof(num), "%d", state.layer_index);
+    canvas_draw_text(c2, 0, 17, 32, &lbl, num);
+
+    rotate_canvas(c2);
 }
 
 /* ── Canvas 3: "Corne" label ── */
@@ -102,7 +133,6 @@ static void draw_c1(void) {
 static void draw_c3(void) {
     lv_canvas_fill_bg(c3, BG_COLOR, LV_OPA_COVER);
 
-    /* "Corne" in montserrat_10: C(7)+o(6)+r(4)+n(6)+e(6)=29px → fits in 32px */
     lv_draw_label_dsc_t lbl;
     init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_10, LV_TEXT_ALIGN_CENTER);
     canvas_draw_text(c3, 0, 10, 32, &lbl, "Corne");
@@ -152,7 +182,7 @@ struct output_state {
 };
 
 static void output_cb(struct output_state s) {
-    state.profile_index = s.profile_index;
+    state.profile_index  = s.profile_index;
     state.profile_connected = s.connected;
     state.profile_bonded = s.bonded;
     draw_c0();
@@ -162,8 +192,8 @@ static void output_cb(struct output_state s) {
 static struct output_state output_get(const zmk_event_t *eh) {
     return (struct output_state){
         .profile_index = zmk_ble_active_profile_index(),
-        .connected = zmk_ble_active_profile_is_connected(),
-        .bonded = !zmk_ble_active_profile_is_open(),
+        .connected     = zmk_ble_active_profile_is_connected(),
+        .bonded        = !zmk_ble_active_profile_is_open(),
     };
 }
 
@@ -177,20 +207,16 @@ ZMK_SUBSCRIPTION(p_central_out, zmk_ble_active_profile_changed);
 
 struct layer_state {
     uint8_t index;
-    const char *label;
 };
 
 static void layer_cb(struct layer_state s) {
     state.layer_index = s.index;
-    state.layer_label = s.label;
-    draw_c1();
+    draw_c2();
 }
 
 static struct layer_state layer_get(const zmk_event_t *eh) {
-    uint8_t idx = zmk_keymap_highest_layer_active();
     return (struct layer_state){
-        .index = idx,
-        .label = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(idx)),
+        .index = zmk_keymap_highest_layer_active(),
     };
 }
 
@@ -204,7 +230,7 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_set_style_bg_color(screen, BG_COLOR, 0);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
 
-    /* x=96 → top in portrait, x=0 → bottom in portrait */
+    /* Physical x positions: c0=96 (portrait top), c3=0 (portrait bottom) */
     c0 = lv_canvas_create(screen);
     lv_canvas_set_buffer(c0, buf0, CANVAS_SIZE, CANVAS_SIZE, CANVAS_COLOR_FORMAT);
     lv_obj_set_pos(c0, 96, 0);
@@ -222,20 +248,15 @@ lv_obj_t *zmk_display_status_screen(void) {
     lv_obj_set_pos(c3, 0, 0);
 
     /* Init state */
-    state.battery = zmk_battery_state_of_charge();
-    state.profile_index = zmk_ble_active_profile_index();
+    state.battery           = zmk_battery_state_of_charge();
+    state.profile_index     = zmk_ble_active_profile_index();
     state.profile_connected = zmk_ble_active_profile_is_connected();
-    state.profile_bonded = !zmk_ble_active_profile_is_open();
-    state.layer_index = zmk_keymap_highest_layer_active();
-    state.layer_label = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(state.layer_index));
+    state.profile_bonded    = !zmk_ble_active_profile_is_open();
+    state.layer_index       = zmk_keymap_highest_layer_active();
 
     draw_c0();
     draw_c1();
-
-    /* Canvas 2: empty dark */
-    lv_canvas_fill_bg(c2, BG_COLOR, LV_OPA_COVER);
-    rotate_canvas(c2);
-
+    draw_c2();
     draw_c3();
 
     p_central_bat_init();
