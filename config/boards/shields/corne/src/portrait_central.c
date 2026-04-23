@@ -57,16 +57,26 @@ static void draw_c0(void) {
     init_label_dsc(&lbl, FG_COLOR, &lv_font_montserrat_16, LV_TEXT_ALIGN_CENTER);
 
     const char *icon;
+    bool show_charge = false;
     switch (zmk_endpoint_get_selected().transport) {
     case ZMK_TRANSPORT_USB:
-        icon = LV_SYMBOL_USB;
+        icon = LV_SYMBOL_USB; /* USB symbol already implies power */
         break;
     case ZMK_TRANSPORT_BLE:
     default:
         icon = state.profile_connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE;
+        show_charge = state.charging; /* BLE but USB power present → charging */
         break;
     }
-    canvas_draw_text(c0, 0, 15, 32, &lbl, icon);
+
+    if (show_charge) {
+        /* Append "+" to signal charging while on BLE */
+        char icon_txt[24];
+        snprintf(icon_txt, sizeof(icon_txt), "%s+", icon);
+        canvas_draw_text(c0, 0, 15, 32, &lbl, icon_txt);
+    } else {
+        canvas_draw_text(c0, 0, 15, 32, &lbl, icon);
+    }
 
     rotate_canvas(c0);
 }
